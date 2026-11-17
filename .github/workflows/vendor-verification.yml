@@ -1,0 +1,42 @@
+name: XG5000 native verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download pinned official XG5000 release
+        shell: pwsh
+        run: |
+          curl.exe --fail --location --retry 3 --output "$env:RUNNER_TEMP\XG5000.exe" 'https://sftpssqblobcdn.blob.core.windows.net/prod/largefile/document/17846112306110/XG5000_V4.82.1_2026_07_20_Eng.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Vendor download failed' }
+      - name: Extract MSI without running the launcher
+        run: python scripts/verification/extract_vendor_installer.py --installer "${{ runner.temp }}/XG5000.exe" --output "${{ runner.temp }}/vendor-msi"
+      - name: Install vendor programming tool on temporary runner
+        shell: pwsh
+        run: |
+          $msi = Join-Path $env:RUNNER_TEMP 'vendor-msi\XG5000.msi'
+          $log = Join-Path $env:RUNNER_TEMP 'vendor-install.log'
+          $process = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart /L*v `"$log`"" -PassThru -Wait
+          if ($process.ExitCode -notin @(0, 3010)) { throw "Vendor install failed: $($process.ExitCode)" }
+          $exe = Get-ChildItem @('C:\XG5000', 'C:\Program Files (x86)\LS', 'C:\Program Files (x86)\LSIS', 'C:\Program Files (x86)\LS ELECTRIC', 'C:\Program Files\LS ELECTRIC') -Filter XG5000.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { $exe = Get-ChildItem 'C:\Program Files (x86)' -Filter XG5000.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $exe) { throw 'Installed XG5000.exe not found' }
+          "XGMAP_VENDOR_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+      - run: pip install pywinauto pillow
+      - name: Inspect native project controls
+        run: python scripts/verification/inspect_vendor_ui.py --executable "${{ env.XGMAP_VENDOR_EXE }}" --output "${{ runner.temp }}/vendor-ui"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: XG5000-native-verification
+          path: |
+            ${{ runner.temp }}/vendor-ui
+            ${{ runner.temp }}/vendor-install.log
