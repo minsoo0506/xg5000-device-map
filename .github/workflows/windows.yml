@@ -18,6 +18,9 @@ jobs:
       - run: npx playwright install chromium
       - run: npm run test:ui
       - run: npm run tauri -- build
+      - name: Install and launch Windows app
+        shell: pwsh
+        run: ./scripts/test-windows-install.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: XG5000-Device-Map-Windows-Installer
