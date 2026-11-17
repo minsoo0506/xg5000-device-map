@@ -19,6 +19,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Vendor download failed' }
       - name: Extract MSI without running the launcher
         run: python scripts/verification/extract_vendor_installer.py --installer "${{ runner.temp }}/XG5000.exe" --output "${{ runner.temp }}/vendor-msi"
+      - name: Install vendor-bundled Visual C++ prerequisites
+        shell: pwsh
+        run: |
+          $runtimes = Get-ChildItem "$env:RUNNER_TEMP\vendor-msi" -Filter '*.exe'
+          foreach ($runtime in $runtimes) {
+            Write-Output "Installing bundled runtime: $($runtime.Name)"
+            $result = Start-Process $runtime.FullName -ArgumentList '/install /quiet /norestart' -Wait -PassThru
+            if ($result.ExitCode -notin @(0, 1638, 3010)) { throw "Runtime failed: $($runtime.Name): $($result.ExitCode)" }
+          }
       - name: Install vendor programming tool on temporary runner
         shell: pwsh
         run: |

@@ -139,7 +139,7 @@ def extract_installer(installer, output):
     try:
         with installer.open("rb") as stream, mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
             records = [_extract_member(data, name, offset, length, temporary / name)
-                       for name, offset, length in _members(data) if name.lower().endswith(".msi")]
+                       for name, offset, length in _members(data) if name.lower().endswith(".msi") or any(marker in name for marker in (".VC_redist.", "{3A3AF437-", "{BF2F04CD-", "{49CE81AF-", "{09F56021-"))]
         msi = next((record for record in records if record["name"] == msi_name), None)
         _require(msi is not None, f"Installer does not contain {msi_name}")
         _require(msi_sha256 is None or msi["sha256"] == msi_sha256, "Extracted MSI checksum mismatch")
