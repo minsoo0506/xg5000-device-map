@@ -1,7 +1,7 @@
 // Networks group references; edges describe shared ladder networks, not Boolean causality.
 export function projectGraph(document) {
  const devices=new Map(),rungs=[],warnings=[...document.warnings];
- const add=value=>{const address=value?.trim();if(!address||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(address))return null;if(!devices.has(address))devices.set(address,{address,comment:''});return address;};
+ const add=value=>{const name=value?.trim();const symbol=document.aliases?.[name];const address=symbol?.address||name;if(!address||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(address))return null;if(!devices.has(address))devices.set(address,{address,comment:[name!==address?name:'',symbol?.comment].filter(Boolean).join(' · ')});return address;};
  for(const [pi,program] of document.programs.entries())for(const [ni,network] of program.networks.entries()){
   const reads=new Set(),writes=[],source=[];
   function read(v){const a=add(v);if(a)reads.add(a);}

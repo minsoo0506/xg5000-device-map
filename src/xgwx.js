@@ -1,6 +1,7 @@
 import { Inflate } from 'pako';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { Buffer } from 'buffer';
+import {readXgkSymbols} from './xgk-symbols.js';
 import { parseXgkLadder } from './xgk-ladder.js';
 globalThis.Buffer ??= Buffer;
 const LIMIT=64*1024*1024;
@@ -35,6 +36,10 @@ export async function readXgwx(input){
  if(!root)throw Error('프로젝트 정보를 찾을 수 없습니다.');
  const {default:Bunzip}=await import('seek-bzip');
  const programs=[],warnings=[];
+ const aliases={};
+ function visitSymbols(node){if(!node||typeof node!=='object')return;for(const [key,value] of Object.entries(node)){if(key==='Symbols'){for(const table of array(value)){if(!table?.['#text'])continue;try{let payload=Buffer.from(table['#text'].replace(/\s/g,''),'base64');if(table['@Compressed']==='1')payload=Bunzip.decode(payload);const result=readXgkSymbols(payload);Object.assign(aliases,result.aliases);if(result.unresolved)warnings.push('이 프로젝트의 일부 변수표 형식은 주소 연결을 아직 해석하지 못했습니다.');}catch(e){warnings.push('변수표 해석 실패: '+e.message);}}}else if(typeof value==='object')visitSymbols(value);}}
+ visitSymbols(root);
+
  for(const cfg of array(root.Configurations?.Configuration))for(const program of array(cfg.POU?.Programs?.Program ?? cfg.Programs?.Program)){
   const record={name:program['#text']||'이름 없음',configuration:cfg['#text']||'',typeCode:cfg['@Type'],task:program['@Task'],networks:[]};
   // ProgramData can be wrapped in an LD container depending on XG5000 version.
@@ -53,5 +58,5 @@ export async function readXgwx(input){
   programs.push(record);
  }
  if(!programs.length)throw Error('프로젝트에 프로그램이 없습니다.');
- return {name:root['#text']||'XGWX 프로젝트',fileVersion:root['@FileVer'],programs,warnings};
+ return {name:root['#text']||'XGWX 프로젝트',fileVersion:root['@FileVer'],programs,warnings,aliases};
 }
