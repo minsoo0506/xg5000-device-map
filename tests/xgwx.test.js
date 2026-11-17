@@ -28,3 +28,9 @@ test('resolves GL50 alias to its explicit address',()=>{
  const result=readXgkSymbols(table);assert.deepEqual(result.aliases['시작'],{address:'P00000',comment:'기동 버튼'});
  const graph=projectGraph({name:'alias',warnings:[],aliases:result.aliases,programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:6,strings:['시작']},{kind:14,strings:['M00000']}]}]}]}]});assert.deepEqual(graph.rungs[0].reads,['P00000']);assert.match(graph.devices[0].comment,/시작/);
 });
+
+test('program local aliases do not overwrite each other',()=>{
+ const network=address=>[{number:0,rows:[{elements:[{kind:6,strings:['ready']},{kind:14,strings:[address]}]}]}];
+ const p=projectGraph({name:'scopes',warnings:[],programs:[{name:'A',aliases:{ready:{address:'M00000'}},networks:network('P00020')},{name:'B',aliases:{ready:{address:'M00001'}},networks:network('P00021')}]});
+ assert.deepEqual(p.rungs.map(r=>r.reads),[['M00000'],['M00001']]);
+});

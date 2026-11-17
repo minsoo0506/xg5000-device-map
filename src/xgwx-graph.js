@@ -1,11 +1,11 @@
 // Networks group references; edges describe shared ladder networks, not Boolean causality.
 export function projectGraph(document) {
  const devices=new Map(),rungs=[],warnings=[...document.warnings];
- const add=value=>{const name=value?.trim();const symbol=document.aliases?.[name];const address=symbol?.address||name;if(!address||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(address))return null;if(!devices.has(address))devices.set(address,{address,comment:[name!==address?name:'',symbol?.comment].filter(Boolean).join(' · ')});return address;};
+ const add=(value,program)=>{const name=value?.trim();const symbol=program.aliases?.[name]||document.aliases?.[name];const address=symbol?.address||name;if(!address||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(address))return null;if(!devices.has(address))devices.set(address,{address,comment:[name!==address?name:'',symbol?.comment].filter(Boolean).join(' · ')});return address;};
  for(const [pi,program] of document.programs.entries())for(const [ni,network] of program.networks.entries()){
   const reads=new Set(),writes=[],source=[];
-  function read(v){const a=add(v);if(a)reads.add(a);}
-  function write(v,instruction){const a=add(v);if(a&&!writes.some(w=>w.address===a&&w.instruction===instruction))writes.push({address:a,instruction});}
+  function read(v){const a=add(v,program);if(a)reads.add(a);}
+  function write(v,instruction){const a=add(v,program);if(a&&!writes.some(w=>w.address===a&&w.instruction===instruction))writes.push({address:a,instruction});}
   for(const row of network.rows)for(const e of row.elements){
    if([6,7,8].includes(e.kind)&&e.strings?.length){read(e.strings[0]);source.push(`${e.kind===7?'NC':'접점'} ${e.strings[0]}`);}
    else if([14,16,17].includes(e.kind)&&e.strings?.length){const op={14:'OUT',16:'SET',17:'RST'}[e.kind];write(e.strings[0],op);source.push(`${op} ${e.strings[0]}`);}
