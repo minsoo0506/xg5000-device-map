@@ -1,0 +1,1 @@
+The binary record reader in src/xgk-ladder.js uses format observations from 08yejune-creator/xg5000-skill (MIT, license included), extended for non-IEC instruction records and additional wire elements. https://github.com/08yejune-creator/xg5000-skill
