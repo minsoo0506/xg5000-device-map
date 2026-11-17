@@ -59,3 +59,14 @@ test('later aliases remain searchable when raw address was encountered first',()
  const p=projectGraph({name:'metadata',warnings:[],programs:[{name:'A',networks:network('M00000')},{name:'B',aliases:{ready:{address:'M00000',comment:'motor ready'}},networks:network('ready')}]});
  assert.match(p.devices[0].comment,/ready/);assert.match(p.devices[0].comment,/motor ready/);
 });
+
+import {decodeBzipLimited} from '../src/bzip-limited.js';
+test('bzip output stops at the configured limit before returning oversized data',()=>{
+ const input=Buffer.from('QlpoOTFBWSZTWVHU9lAAAARBAMAAIAAACCAAMMwFU2piKDxdyRThQkFHU9lA','base64');
+ assert.throws(()=>decodeBzipLimited(input,16),/크기 제한/);
+});
+
+test('bzip output is exact at the limit',()=>{
+ const input=Buffer.from('QlpoOTFBWSZTWVHU9lAAAARBAMAAIAAACCAAMMwFU2piKDxdyRThQkFHU9lA','base64');
+ assert.deepEqual(decodeBzipLimited(input,1024),new Uint8Array(1024).fill(97));
+});

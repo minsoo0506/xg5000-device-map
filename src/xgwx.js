@@ -1,3 +1,4 @@
+import {decodeBzipLimited} from './bzip-limited.js';
 import { Inflate } from 'pako';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { Buffer } from 'buffer';
@@ -34,10 +35,9 @@ export async function readXgwx(input){
  if(XMLValidator.validate(xml)!==true)throw Error('프로젝트 XML이 손상됐습니다.');
  const root=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@',parseTagValue:false,trimValues:true}).parse(xml).Project;
  if(!root)throw Error('프로젝트 정보를 찾을 수 없습니다.');
- const {default:Bunzip}=await import('seek-bzip');
  const programs=[],warnings=[];
  function collectAliases(node){const aliases={};
- function visitSymbols(node){if(!node||typeof node!=='object')return;for(const [key,value] of Object.entries(node)){if(key==='Symbols'){for(const table of array(value)){if(!table?.['#text'])continue;try{let payload=Buffer.from(table['#text'].replace(/\s/g,''),'base64');if(table['@Compressed']==='1')payload=Bunzip.decode(payload);const result=readXgkSymbols(payload);Object.assign(aliases,result.aliases);if(result.unresolved)warnings.push('이 프로젝트의 일부 변수표 형식은 주소 연결을 아직 해석하지 못했습니다.');}catch(e){warnings.push('변수표 해석 실패: '+e.message);}}}else if(typeof value==='object'&&!['Programs','Program','Configuration','Configurations'].includes(key))visitSymbols(value);}}
+ function visitSymbols(node){if(!node||typeof node!=='object')return;for(const [key,value] of Object.entries(node)){if(key==='Symbols'){for(const table of array(value)){if(!table?.['#text'])continue;try{let payload=Buffer.from(table['#text'].replace(/\s/g,''),'base64');if(table['@Compressed']==='1')payload=decodeBzipLimited(payload);const result=readXgkSymbols(payload);Object.assign(aliases,result.aliases);if(result.unresolved)warnings.push('이 프로젝트의 일부 변수표 형식은 주소 연결을 아직 해석하지 못했습니다.');}catch(e){warnings.push('변수표 해석 실패: '+e.message);}}}else if(typeof value==='object'&&!['Programs','Program','Configuration','Configurations'].includes(key))visitSymbols(value);}}
  visitSymbols(node);return aliases;}
 
  for(const [configurationId,cfg] of array(root.Configurations?.Configuration).entries())for(const program of array(cfg.POU?.Programs?.Program ?? cfg.Programs?.Program)){
@@ -50,7 +50,7 @@ export async function readXgwx(input){
   else if(data['@ProjectType']!=='1')record.error='비 IEC 래더 형식만 분석할 수 있습니다.';
   else try{
    let payload=Buffer.from((data['#text']||'').replace(/\s/g,''),'base64');
-   if(data['@Compressed']==='1')payload=Bunzip.decode(payload);
+   if(data['@Compressed']==='1')payload=decodeBzipLimited(payload);
    if(payload.length>LIMIT)throw Error('래더 크기 제한 초과');
    record.networks=parseXgkLadder(payload);
   }catch(e){record.error=e.message;}
