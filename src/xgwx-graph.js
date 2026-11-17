@@ -1,8 +1,9 @@
+import {canonicalAddress} from './device-address.js';
 // Networks group references; edges describe shared ladder networks, not Boolean causality.
 export function projectGraph(document) {
  const devices=new Map(),rungs=[],warnings=[...document.warnings];
  const configurations=new Set(document.programs.map(p=>p.configurationId??p.configuration??''));
- const add=(value,program)=>{const name=value?.trim();const symbol=program.aliases?.[name]||document.aliases?.[name];const rawAddress=symbol?.address||name;const address=configurations.size>1?`${program.configuration||'PLC'}[${program.configurationId??program.configuration}] / ${rawAddress}`:rawAddress;if(!rawAddress||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(rawAddress))return null;if(!devices.has(address))devices.set(address,{address,comment:[name!==address?name:'',symbol?.comment].filter(Boolean).join(' · ')});return address;};
+ const add=(value,program)=>{const name=value?.trim();const symbol=program.aliases?.[name]||document.aliases?.[name];const rawAddress=canonicalAddress(symbol?.address||name||'');const address=configurations.size>1?`${program.configuration||'PLC'}[${program.configurationId??program.configuration}] / ${rawAddress}`:rawAddress;if(!rawAddress||/^(?:[+-]?\d+(?:\.\d+)?|[KHL]#[0-9A-F]+)$/i.test(rawAddress))return null;const metadata=[name!==rawAddress?name:'',symbol?.comment].filter(Boolean);const existing=devices.get(address);if(!existing)devices.set(address,{address,comment:metadata.join(' · ')});else existing.comment=[...new Set([...existing.comment.split(' · ').filter(Boolean),...metadata])].join(' · ');return address;};
  for(const [pi,program] of document.programs.entries())for(const [ni,network] of program.networks.entries()){
   const reads=new Set(),writes=[],source=[];
   function read(v){const a=add(v,program);if(a)reads.add(a);}

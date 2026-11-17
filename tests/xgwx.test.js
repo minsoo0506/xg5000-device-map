@@ -36,15 +36,26 @@ test('program local aliases do not overwrite each other',()=>{
 });
 
 test('increment reads and writes its operand; END adds no warning',()=>{
- const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['INC','D0000'],text:'INC,D0000'},{kind:34,operands:['END'],text:'END'}]}]}]}]});
- assert.deepEqual(p.rungs[0].reads,['D0000']);assert.deepEqual(p.rungs[0].writes,[{address:'D0000',instruction:'INC'}]);assert.deepEqual(p.warnings,[]);
+ const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['INC','D00000'],text:'INC,D00000'},{kind:34,operands:['END'],text:'END'}]}]}]}]});
+ assert.deepEqual(p.rungs[0].reads,['D00000']);assert.deepEqual(p.rungs[0].writes,[{address:'D00000',instruction:'INC'}]);assert.deepEqual(p.warnings,[]);
 });
 test('word OR maps both inputs to the destination',()=>{
- const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['WOR','D0000','D0001','D0002'],text:'WOR,D0000,D0001,D0002'}]}]}]}]});assert.deepEqual(p.rungs[0].reads,['D0000','D0001']);assert.equal(p.rungs[0].writes[0].address,'D0002');
+ const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['WOR','D00000','D00001','D00002'],text:'WOR,D00000,D00001,D00002'}]}]}]}]});assert.deepEqual(p.rungs[0].reads,['D00000','D00001']);assert.equal(p.rungs[0].writes[0].address,'D00002');
 });
 
 test('identical addresses in different PLC configurations stay separate',()=>{
  const program=configuration=>({name:'MAIN',configuration,networks:[{number:0,rows:[{elements:[{kind:6,strings:['M00000']},{kind:14,strings:['P00020']}]}]}]});
  const p=projectGraph({name:'multi',warnings:[],programs:[program('PLC1'),program('PLC2')]});
  assert.equal(p.devices.length,4);assert.notEqual(p.rungs[0].reads[0],p.rungs[1].reads[0]);
+});
+
+test('canonical device addresses join equivalent spellings across programs',()=>{
+ const network=(kind,address)=>[{number:0,rows:[{elements:[{kind,strings:[address]}]}]}];
+ const p=projectGraph({name:'case',warnings:[],programs:[{name:'A',networks:network(14,'m0000')},{name:'B',networks:network(6,'M00000')}]});
+ assert.equal(p.devices.length,1);assert.equal(p.rungs[0].writes[0].address,p.rungs[1].reads[0]);
+});
+test('later aliases remain searchable when raw address was encountered first',()=>{
+ const network=address=>[{number:0,rows:[{elements:[{kind:6,strings:[address]}]}]}];
+ const p=projectGraph({name:'metadata',warnings:[],programs:[{name:'A',networks:network('M00000')},{name:'B',aliases:{ready:{address:'M00000',comment:'motor ready'}},networks:network('ready')}]});
+ assert.match(p.devices[0].comment,/ready/);assert.match(p.devices[0].comment,/motor ready/);
 });
