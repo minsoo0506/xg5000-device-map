@@ -40,8 +40,8 @@ export async function readXgwx(input){
  function visitSymbols(node){if(!node||typeof node!=='object')return;for(const [key,value] of Object.entries(node)){if(key==='Symbols'){for(const table of array(value)){if(!table?.['#text'])continue;try{let payload=Buffer.from(table['#text'].replace(/\s/g,''),'base64');if(table['@Compressed']==='1')payload=Bunzip.decode(payload);const result=readXgkSymbols(payload);Object.assign(aliases,result.aliases);if(result.unresolved)warnings.push('이 프로젝트의 일부 변수표 형식은 주소 연결을 아직 해석하지 못했습니다.');}catch(e){warnings.push('변수표 해석 실패: '+e.message);}}}else if(typeof value==='object'&&!['Programs','Program','Configuration','Configurations'].includes(key))visitSymbols(value);}}
  visitSymbols(node);return aliases;}
 
- for(const cfg of array(root.Configurations?.Configuration))for(const program of array(cfg.POU?.Programs?.Program ?? cfg.Programs?.Program)){
-  const record={name:program['#text']||'이름 없음',configuration:cfg['#text']||'',typeCode:cfg['@Type'],aliases:{...collectAliases(cfg),...collectAliases(program)},task:program['@Task'],networks:[]};
+ for(const [configurationId,cfg] of array(root.Configurations?.Configuration).entries())for(const program of array(cfg.POU?.Programs?.Program ?? cfg.Programs?.Program)){
+  const record={name:program['#text']||'이름 없음',configuration:cfg['#text']||'',configurationId,typeCode:cfg['@Type'],aliases:{...collectAliases(cfg),...collectAliases(program)},task:program['@Task'],networks:[]};
   // ProgramData can be wrapped in an LD container depending on XG5000 version.
   function findData(node){if(!node||typeof node!=='object')return null;if(node.ProgramData)return node.ProgramData;for(const v of Object.values(node)){if(typeof v==='object'){const d=findData(v);if(d)return d;}}return null;}
   const data=findData(program);

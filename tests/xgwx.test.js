@@ -42,3 +42,9 @@ test('increment reads and writes its operand; END adds no warning',()=>{
 test('word OR maps both inputs to the destination',()=>{
  const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['WOR','D0000','D0001','D0002'],text:'WOR,D0000,D0001,D0002'}]}]}]}]});assert.deepEqual(p.rungs[0].reads,['D0000','D0001']);assert.equal(p.rungs[0].writes[0].address,'D0002');
 });
+
+test('identical addresses in different PLC configurations stay separate',()=>{
+ const program=configuration=>({name:'MAIN',configuration,networks:[{number:0,rows:[{elements:[{kind:6,strings:['M00000']},{kind:14,strings:['P00020']}]}]}]});
+ const p=projectGraph({name:'multi',warnings:[],programs:[program('PLC1'),program('PLC2')]});
+ assert.equal(p.devices.length,4);assert.notEqual(p.rungs[0].reads[0],p.rungs[1].reads[0]);
+});
