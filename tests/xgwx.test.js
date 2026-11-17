@@ -82,3 +82,11 @@ test('MUL and DIV expose both result words including the remainder',()=>{
  assert.deepEqual(p.rungs[0].writes.map(w=>w.address),['D00010','D00011']);
  }
 });
+
+import {canonicalAddress} from '../src/device-address.js';
+test('S and U device addresses are case insensitive without uppercasing arbitrary aliases',()=>{
+ assert.equal(canonicalAddress('s0000'),canonicalAddress('S0000'));
+ assert.equal(canonicalAddress('u00.00'),canonicalAddress('U00.00'));
+ assert.equal(canonicalAddress('u00.00.0'),canonicalAddress('U00.00.0'));
+ assert.equal(canonicalAddress('startMotor'),'startMotor');
+});
