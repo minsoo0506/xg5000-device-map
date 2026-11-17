@@ -70,3 +70,15 @@ test('bzip output is exact at the limit',()=>{
  const input=Buffer.from('QlpoOTFBWSZTWVHU9lAAAARBAMAAIAAACCAAMMwFU2piKDxdyRThQkFHU9lA','base64');
  assert.deepEqual(decodeBzipLimited(input,1024),new Uint8Array(1024).fill(97));
 });
+
+test('DMOV connects a later reader of its second destination word',()=>{
+ const network=(operands)=>[{number:0,rows:[{elements:[{kind:34,operands,text:operands.join(',')}]}]}];
+ const p=projectGraph({name:'double',warnings:[],programs:[{name:'A',networks:network(['DMOV','D00000','D00010'])},{name:'B',networks:network(['MOV','D00011','D00020'])}]});
+ assert.deepEqual(p.rungs[0].reads,['D00000','D00001']);assert.deepEqual(p.rungs[0].writes.map(w=>w.address),['D00010','D00011']);assert.equal(p.rungs[1].reads[0],'D00011');
+});
+test('MUL and DIV expose both result words including the remainder',()=>{
+ for(const op of ['MUL','DIV']){
+ const p=projectGraph({name:op,warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:[op,'D00000','D00001','D00010'],text:op}]}]}]}]});
+ assert.deepEqual(p.rungs[0].writes.map(w=>w.address),['D00010','D00011']);
+ }
+});
