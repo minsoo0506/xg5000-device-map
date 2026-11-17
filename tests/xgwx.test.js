@@ -5,7 +5,7 @@ import {readXgwx} from '../src/xgwx.js';
 const fixture=readFileSync(new URL('./fixtures/xgb-xbch.xgwx',import.meta.url));
 test('opens a real XGB project with trailing metadata and decodes its network',async()=>{
  const project=await readXgwx(fixture);
- assert.equal(project.name,'2023-09-05 #1');assert.equal(project.programs.length,1);assert.equal(project.warnings.length,1);assert.match(project.warnings[0],/변수표/);assert.equal(project.programs[0].networks.length,1);
+ assert.equal(project.name,'2023-09-05 #1');assert.equal(project.programs.length,1);assert.deepEqual(project.warnings,[]);assert.equal(project.programs[0].aliases.PB1.address,'P00000');assert.equal(project.programs[0].aliases.PL1.address,'P00020');assert.equal(project.programs[0].networks.length,1);
  const elements=project.programs[0].networks[0].rows.flatMap(r=>r.elements);
  assert.ok(elements.some(e=>e.strings?.includes('M00000')));
 });
