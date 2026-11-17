@@ -34,3 +34,11 @@ test('program local aliases do not overwrite each other',()=>{
  const p=projectGraph({name:'scopes',warnings:[],programs:[{name:'A',aliases:{ready:{address:'M00000'}},networks:network('P00020')},{name:'B',aliases:{ready:{address:'M00001'}},networks:network('P00021')}]});
  assert.deepEqual(p.rungs.map(r=>r.reads),[['M00000'],['M00001']]);
 });
+
+test('increment reads and writes its operand; END adds no warning',()=>{
+ const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['INC','D0000'],text:'INC,D0000'},{kind:34,operands:['END'],text:'END'}]}]}]}]});
+ assert.deepEqual(p.rungs[0].reads,['D0000']);assert.deepEqual(p.rungs[0].writes,[{address:'D0000',instruction:'INC'}]);assert.deepEqual(p.warnings,[]);
+});
+test('word OR maps both inputs to the destination',()=>{
+ const p=projectGraph({name:'commands',warnings:[],programs:[{name:'MAIN',networks:[{number:0,rows:[{elements:[{kind:34,operands:['WOR','D0000','D0001','D0002'],text:'WOR,D0000,D0001,D0002'}]}]}]}]});assert.deepEqual(p.rungs[0].reads,['D0000','D0001']);assert.equal(p.rungs[0].writes[0].address,'D0002');
+});

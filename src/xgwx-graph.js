@@ -11,7 +11,9 @@ export function projectGraph(document) {
    else if([14,16,17].includes(e.kind)&&e.strings?.length){const op={14:'OUT',16:'SET',17:'RST'}[e.kind];write(e.strings[0],op);source.push(`${op} ${e.strings[0]}`);}
    else if(e.kind===34){const [op,...args]=e.operands;source.push(e.text);
     if(/^(?:=|<>|>=|<=|>|<|AND|OR|XOR)$/.test(op))args.forEach(read);
-    else if(/^(?:MOV|DMOV|ADD|SUB|MUL|DIV|DADD|DSUB|ANDW|ORW|XORW)$/.test(op)){args.slice(0,-1).forEach(read);write(args.at(-1),op);}
+    else if(/^(?:MOV|DMOV|ADD|SUB|MUL|DIV|DADD|DSUB|ANDW|ORW|XORW|WAND|WOR|WXOR)$/.test(op)){args.slice(0,-1).forEach(read);write(args.at(-1),op);}
+    else if(/^(?:INC|DEC|DINC|DDEC)$/.test(op)){args.forEach(read);args.forEach(a=>write(a,op));}
+    else if(/^(?:END|NOP)$/.test(op)){}
     else if(/^(?:TON|TOF|TMR|CTU|CTD|CTUD)$/.test(op)){write(args[0],op);args.slice(1).forEach(read);}
     else warnings.push(`${program.name} 네트워크 ${network.number}: 미해석 명령 ${op}`);
    }else if(![0,1,2,35,36,63].includes(e.kind))warnings.push(`${program.name} 네트워크 ${network.number}: 미해석 요소 ${e.kind}`);
