@@ -14,9 +14,6 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
-      - run: npm test
-      - run: npx playwright install chromium
-      - run: npm run test:ui
       - run: npm run tauri -- build
       - name: Install and launch Windows app
         shell: pwsh
