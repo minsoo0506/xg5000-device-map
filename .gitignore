@@ -6,3 +6,4 @@ src-tauri/target/
 test-results/
 playwright-report/
 /tests/
+/playwright.config.js
