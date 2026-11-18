@@ -37,7 +37,9 @@ jobs:
           # stalled the offline runner, so install only the needed features.
           $log = Join-Path $env:RUNNER_TEMP 'vendor-install.log'
           # Start-Process -Wait also waits for descendants left by the MSI chainer.
-          $process = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" REMOVE=MicroEdge /qn /norestart /L*vx! `"$log`"" -PassThru
+          $process = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" ADDLOCAL=ALL REMOVE=MicroEdge,DriveCM /qn /norestart /L*vx! `"$log`"" -PassThru `
+            -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP 'vendor-stdout.log') `
+            -RedirectStandardError (Join-Path $env:RUNNER_TEMP 'vendor-stderr.log')
           if (-not $process.WaitForExit(180000)) { throw "Vendor installer did not exit within 3 minutes" }
           if ($process.ExitCode -notin @(0, 3010)) { throw "Vendor install failed: $($process.ExitCode)" }
           $exe = Get-ChildItem @('C:\XG5000', 'C:\Program Files (x86)\LS', 'C:\Program Files (x86)\LSIS', 'C:\Program Files (x86)\LS ELECTRIC', 'C:\Program Files\LS ELECTRIC') -Filter XG5000.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -53,4 +55,4 @@ jobs:
           name: XG5000-native-verification
           path: |
             ${{ runner.temp }}/vendor-ui
-            ${{ runner.temp }}/vendor-install.log
+            ${{ runner.temp }}/vendor-*.log
