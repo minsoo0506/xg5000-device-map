@@ -29,11 +29,17 @@ jobs:
             if ($result.ExitCode -notin @(0, 1638, 3010)) { throw "Runtime failed: $($runtime.Name): $($result.ExitCode)" }
           }
       - name: Install vendor programming tool on temporary runner
+        timeout-minutes: 8
         shell: pwsh
         run: |
           $msi = Join-Path $env:RUNNER_TEMP 'vendor-msi\XG5000.msi'
+          $scratch = Join-Path $env:RUNNER_TEMP 'vendor-msi\offline-working.msi'
+          $transform = Join-Path $env:RUNNER_TEMP 'vendor-msi\offline.mst'
+          Copy-Item $msi $scratch
+          cscript.exe //NoLogo scripts/verification/offline-install-transform.vbs $msi $scratch $transform
+          if ($LASTEXITCODE -ne 0) { throw 'Offline installer transform failed' }
           $log = Join-Path $env:RUNNER_TEMP 'vendor-install.log'
-          $process = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart /L*v `"$log`"" -PassThru -Wait
+          $process = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" TRANSFORMS=`"$transform`" /qn /norestart /L*vx! `"$log`"" -PassThru -Wait
           if ($process.ExitCode -notin @(0, 3010)) { throw "Vendor install failed: $($process.ExitCode)" }
           $exe = Get-ChildItem @('C:\XG5000', 'C:\Program Files (x86)\LS', 'C:\Program Files (x86)\LSIS', 'C:\Program Files (x86)\LS ELECTRIC', 'C:\Program Files\LS ELECTRIC') -Filter XG5000.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { $exe = Get-ChildItem 'C:\Program Files (x86)' -Filter XG5000.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
