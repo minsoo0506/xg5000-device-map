@@ -1,8 +1,8 @@
 [package]
 name = "xg5000-device-map"
-version = "0.1.0"
-description = "XG5000 device relationship explorer prototype"
-authors = ["XG5000 Device Map"]
+version = "0.2.0"
+description = "XG5000 device relationship explorer"
+authors = ["xorear_eax"]
 edition = "2021"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

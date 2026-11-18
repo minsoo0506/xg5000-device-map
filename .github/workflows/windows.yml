@@ -2,10 +2,13 @@ name: Windows installer
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,3 +26,11 @@ jobs:
           name: XG5000-Device-Map-Windows-Installer
           path: src-tauri/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error
+      - name: Publish verified installer
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installer = Get-ChildItem 'src-tauri/target/release/bundle/nsis/*-setup.exe' | Select-Object -First 1
+          gh release create $env:GITHUB_REF_NAME $installer.FullName --verify-tag --generate-notes
