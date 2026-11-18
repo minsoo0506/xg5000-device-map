@@ -1,0 +1,148 @@
+.relationship-canvas {
+  --graph-surface: #fff;
+  --graph-ink: #263747;
+  --graph-muted: #566677;
+  --graph-border: #b9c8cd;
+  --rung-bg: #eef2fa;
+  --rung-border: #a0aecb;
+  --selected-bg: #e5f6ef;
+  --selected-border: #138b70;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 240px;
+  overflow: hidden;
+  background: #f9fbfc;
+}
+.relationship-canvas[data-mode='dark'] {
+  --graph-surface: #23303d;
+  --graph-ink: #e3ebf2;
+  --graph-muted: #b2c1cf;
+  --graph-border: #596c79;
+  --rung-bg: #2a354d;
+  --rung-border: #6c7fa4;
+  --selected-bg: #173e35;
+  --selected-border: #53c6a7;
+  background: #1a2430;
+}
+.relationship-canvas .react-flow {
+  background: transparent;
+}
+.relationship-canvas .react-flow__node-relationship {
+  width: 184px !important;
+  height: 64px;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  z-index: 3 !important;
+}
+.relationship-card {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 14px;
+  text-align: left;
+  background: var(--graph-surface);
+  border: 1px solid var(--graph-border);
+  border-radius: 8px;
+  color: var(--graph-ink);
+  box-shadow: 0 2px 5px #182a3610;
+}
+.relationship-card.device {
+  cursor: pointer;
+}
+.relationship-card.rung {
+  background: var(--rung-bg);
+  border-color: var(--rung-border);
+}
+.relationship-card.current {
+  background: var(--selected-bg);
+  border: 2px solid var(--selected-border);
+  padding: 7px 13px;
+}
+.relationship-card b,
+.relationship-canvas .relationship-card small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.relationship-card b {
+  font-size: 14px;
+}
+.relationship-card.device b {
+  font-family: ui-monospace, monospace;
+}
+.relationship-canvas .relationship-card small {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--graph-muted);
+}
+.relationship-card .react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.relationship-canvas .react-flow__edge-textbg {
+  fill: var(--graph-surface);
+}
+.relationship-canvas .react-flow__edge-text {
+  fill: var(--graph-ink);
+  font:
+    600 10px ui-monospace,
+    monospace;
+}
+.relationship-canvas .react-flow__minimap,
+.relationship-canvas .react-flow__controls {
+  border: 1px solid var(--graph-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px #182a3612;
+}
+.relationship-canvas .react-flow__controls-button {
+  background: var(--graph-surface);
+  color: var(--graph-ink);
+  border-color: var(--graph-border);
+}
+.relationship-legend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 12px;
+  pointer-events: none;
+  color: var(--graph-muted);
+  background: var(--graph-surface);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.relationship-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.relationship-legend i {
+  display: inline-block;
+  width: 13px;
+  height: 3px;
+  border-radius: 2px;
+}
+.relationship-legend .read {
+  background: #376cca;
+}
+.relationship-legend .write {
+  background: #bb632c;
+}
+.relationship-canvas[data-mode='dark'] .read {
+  background: #79aaff;
+}
+.relationship-canvas[data-mode='dark'] .write {
+  background: #f9b46e;
+}
