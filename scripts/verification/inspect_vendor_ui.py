@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 
 from PIL import ImageGrab
-from pywinauto import Application, Desktop, keyboard, mouse
+from pywinauto import Application, Desktop, mouse
 from win32gui import IsWindow, ScreenToClient
 from pywinauto.findwindows import ElementNotFoundError
 
@@ -77,13 +77,18 @@ def create_samples(executable, output):
                 folder_y = 382 if family == "XGB-XBCU" else 364
                 mouse.click(button="right", coords=(bounds.left + 104, bounds.top + folder_y))
                 time.sleep(0.5)
-                # The first enabled menu item is Add Item, then Program.
-                keyboard.send_keys("{HOME}{RIGHT}{HOME}{ENTER}", pause=0.15)
-                program = app.window(title="Program", class_name="#32770")
+                # The menu opens against the top edge at the runner's resolution.
+                add_item = (bounds.left + 157, 41)
+                mouse.move(coords=add_item)
+                time.sleep(0.8)
+                menu_bounds = (bounds.left, 0, bounds.right, bounds.bottom)
+                ImageGrab.grab(bbox=menu_bounds).save(output / f"{family}-add-item.png")
+                mouse.click(coords=(bounds.left + 416, 41))
+                program = app.window(title_re=r".*Program.*", class_name="#32770")
                 try:
                     program.wait("visible enabled", timeout=6)
                 except Exception:
-                    ImageGrab.grab(bbox=tuple(main.rectangle())).save(output / f"{family}-program-menu.png")
+                    ImageGrab.grab(bbox=menu_bounds).save(output / f"{family}-program-menu.png")
                     raise
                 program.child_window(class_name="Edit", found_index=0).set_edit_text("ScanOutput")
                 program.child_window(control_id=1, class_name="Button").click()
