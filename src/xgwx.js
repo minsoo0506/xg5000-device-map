@@ -147,10 +147,20 @@ export async function readXgwx(input) {
   ).entries()) {
     const name = cfg['#text'] || '';
     const parameters = array(cfg.Parameters?.Parameter);
-    const ioModules = parameters
-      .filter((p) => p['@Type'] === 'IO PARAMETER')
-      .flatMap((p) => array(p.Module))
+    const ioParameters = parameters.filter(
+      (parameter) => parameter['@Type'] === 'IO PARAMETER',
+    );
+    const ioModules = ioParameters
+      .flatMap((parameter) => array(parameter.Module))
       .map(moduleInfo);
+    const bases = ioParameters
+      .flatMap((parameter) => array(parameter.BaseInfo?.Base))
+      .map((base) => ({
+        id: base['@Base'],
+        slots: base['@SlotCount'],
+      }));
+    // Configuration.Type values observed in official XG5000 4.82 projects.
+    const cpuFamily = { 2: 'XGB-XBMS', 15: 'XGB-XBCU' }[cfg['@Type']];
     const networkModules = networks.flatMap((network) =>
       array(network.NetworkModule)
         .filter((module) => module['@ConfigName'] === name)
@@ -163,6 +173,8 @@ export async function readXgwx(input) {
       id: configurationId,
       name,
       typeCode: cfg['@Type'],
+      cpuFamily,
+      bases,
       ioModules,
       networkModules,
     });

@@ -286,3 +286,29 @@ dialog label {
   line-height: 1.6;
   margin-bottom: 6px;
 }
+
+.io-layout {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 8px;
+}
+
+.cpu-unit,
+.base-unit {
+  display: grid;
+  gap: 2px;
+  min-width: 85px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.cpu-unit {
+  background: var(--active);
+  border-top: 3px solid var(--accent);
+}
+
+.base-unit {
+  border-top: 3px solid var(--muted);
+}

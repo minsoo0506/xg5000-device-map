@@ -32,7 +32,30 @@ function HardwareBranch({ configurations, field, title, t }) {
       {configurations.length ? (
         configurations.map((config) => (
           <details className="branch" key={config.id} open>
-            <summary>{config.name || 'PLC'}</summary>
+            <summary>
+              {[config.name, config.cpuFamily].filter(Boolean).join(' · ') ||
+                'PLC'}
+            </summary>
+            {field === 'ioModules' && (
+              <div className="io-layout">
+                {config.cpuFamily && (
+                  <div className="cpu-unit">
+                    <small>CPU</small>
+                    <strong>{config.cpuFamily}</strong>
+                  </div>
+                )}
+                {config.bases?.map((base) => (
+                  <div key={base.id} className="base-unit">
+                    <strong>
+                      {t.base} {base.id}
+                    </strong>
+                    <small>
+                      {t.slot} × {base.slots}
+                    </small>
+                  </div>
+                ))}
+              </div>
+            )}
             {config[field]?.length ? (
               <ul className="hardware">
                 {config[field].map((module, index) => (
@@ -54,9 +77,9 @@ function HardwareBranch({ configurations, field, title, t }) {
                   </li>
                 ))}
               </ul>
-            ) : (
+            ) : field !== 'ioModules' || !config.bases?.length ? (
               <p className="empty">{t.empty}</p>
-            )}
+            ) : null}
           </details>
         ))
       ) : (
