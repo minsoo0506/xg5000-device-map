@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 
 from pywinauto import Application, Desktop, mouse
-from win32gui import ScreenToClient
+from win32gui import IsWindow, ScreenToClient
 from pywinauto.findwindows import ElementNotFoundError
 
 
@@ -14,7 +14,7 @@ def click_toolbar(main, x):
     mouse.click(coords=(bounds.left + x, bounds.top + 62))
 
 
-def new_project(app, main, desktop):
+def new_project(app, main):
     main.set_focus()
     click_toolbar(main, 23)
     spec = app.window(title="New Project", class_name="#32770")
@@ -32,7 +32,7 @@ def ladder_operand(app, main, desktop, key, address, output, name):
             dialog.capture_as_image().save(output / f"{name}.png")
             dialog.type_keys(address + "{ENTER}", with_spaces=True)
             time.sleep(0.5)
-            if dialog.is_visible():
+            if IsWindow(dialog.handle) and dialog.is_visible():
                 raise RuntimeError(f"Ladder dialog stayed open after entering {address}")
             return
         time.sleep(0.25)
@@ -48,7 +48,7 @@ def create_samples(executable, output):
             spec = app.window(title="XG5000", class_name_re=r"Afx:.*")
             spec.wait("visible enabled", timeout=60)
             main = spec.wrapper_object()
-            dialog = new_project(app, main, desktop)
+            dialog = new_project(app, main)
             dialog.child_window(control_id=1496, class_name="Edit").set_edit_text(family)
             dialog.child_window(control_id=1443, class_name="Edit").set_edit_text(str(output))
             dialog.child_window(control_id=1444, class_name="Edit").set_edit_text("ScanInput")
