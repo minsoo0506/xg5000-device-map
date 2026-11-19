@@ -47,8 +47,8 @@ jobs:
           if (-not $exe) { throw 'Installed XG5000.exe not found' }
           "XGMAP_VENDOR_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - run: pip install pywinauto pillow
-      - name: Inspect native project controls
-        run: python scripts/verification/inspect_vendor_ui.py --executable "${{ env.XGMAP_VENDOR_EXE }}" --output "${{ runner.temp }}/vendor-ui"
+      - name: Create XBCU and XBMS projects
+        run: python scripts/verification/inspect_vendor_ui.py --executable "${{ env.XGMAP_VENDOR_EXE }}" --output "${{ runner.temp }}/vendor-ui" --create-samples
       - uses: actions/upload-artifact@v4
         if: always()
         with:

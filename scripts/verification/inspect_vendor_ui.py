@@ -9,6 +9,75 @@ from win32gui import ScreenToClient
 from pywinauto.findwindows import ElementNotFoundError
 
 
+def click_toolbar(main, x):
+    bounds = main.rectangle()
+    mouse.click(coords=(bounds.left + x, bounds.top + 62))
+
+
+def new_project(app, main, desktop):
+    main.set_focus()
+    click_toolbar(main, 23)
+    spec = app.window(title="New Project", class_name="#32770")
+    spec.wait("visible enabled", timeout=20)
+    return spec
+
+
+def ladder_operand(app, main, desktop, key, address, output, name):
+    main.type_keys(key)
+    deadline = time.monotonic() + 8
+    while time.monotonic() < deadline:
+        dialogs = desktop.windows(process=app.process, class_name="#32770", visible_only=True)
+        if dialogs:
+            dialog = dialogs[0]
+            dialog.capture_as_image().save(output / f"{name}.png")
+            dialog.type_keys(address + "{ENTER}", with_spaces=True)
+            time.sleep(0.5)
+            if dialog.is_visible():
+                raise RuntimeError(f"Ladder dialog stayed open after entering {address}")
+            return
+        time.sleep(0.25)
+    main.capture_as_image().save(output / f"{name}-missing.png")
+    raise RuntimeError(f"Ladder dialog did not open for {key}")
+
+
+def create_samples(executable, output):
+    for family in ("XGB-XBCU", "XGB-XBMS"):
+        desktop = Desktop(backend="win32")
+        app = Application(backend="win32").start(executable, work_dir=str(Path(executable).parent))
+        try:
+            spec = app.window(title="XG5000", class_name_re=r"Afx:.*")
+            spec.wait("visible enabled", timeout=60)
+            main = spec.wrapper_object()
+            dialog = new_project(app, main, desktop)
+            dialog.child_window(control_id=1496, class_name="Edit").set_edit_text(family)
+            dialog.child_window(control_id=1443, class_name="Edit").set_edit_text(str(output))
+            dialog.child_window(control_id=1444, class_name="Edit").set_edit_text("ScanInput")
+            dialog.child_window(control_id=1440, class_name="ComboBox").select("XGB")
+            cpu = dialog.child_window(control_id=1495, class_name="ComboBox")
+            types = cpu.item_texts()
+            (output / f"{family}-cpu-types.txt").write_text("\n".join(types), encoding="utf-8")
+            selection = next((name for name in types if name.strip().upper() == family), None)
+            if selection is None:
+                raise RuntimeError(f"{family} is missing from the CPU type list")
+            cpu.select(selection)
+            dialog.wrapper_object().capture_as_image().save(output / f"{family}-selected.png")
+            dialog.child_window(control_id=1, class_name="Button").click()
+            dialog.wait_not("visible", timeout=20)
+            time.sleep(1)
+            main.capture_as_image().save(output / f"{family}-editor.png")
+            try:
+                ladder_operand(app, main, desktop, "{F3}", "P00000", output, f"{family}-contact")
+                ladder_operand(app, main, desktop, "{F9}", "M00010", output, f"{family}-coil")
+                click_toolbar(main, 90)
+                time.sleep(1)
+                main.capture_as_image().save(output / f"{family}-saved.png")
+            finally:
+                if not list(output.rglob(f"{family}.xgwx")):
+                    raise RuntimeError(f"XG5000 did not create {family}.xgwx")
+        finally:
+            app.kill(soft=False)
+
+
 def inspect(executable, output):
     desktop = Desktop(backend="win32")
     app = Application(backend="win32").start(executable, work_dir=str(Path(executable).parent))
@@ -61,6 +130,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--create-samples", action="store_true")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    inspect(args.executable, args.output)
+    operation = create_samples if args.create_samples else inspect
+    operation(args.executable, args.output)
