@@ -4,7 +4,8 @@ import argparse
 from pathlib import Path
 import time
 
-from pywinauto import Application, Desktop
+from pywinauto import Application, Desktop, mouse
+from win32gui import ScreenToClient
 from pywinauto.findwindows import ElementNotFoundError
 
 
@@ -13,19 +14,22 @@ def inspect(executable, output):
     app = Application(backend="win32").start(executable, work_dir=str(Path(executable).parent))
     try:
         main_spec = app.window(title="XG5000", class_name_re=r"Afx:.*")
-        main = main_spec.wait("visible enabled", timeout=60).wrapper_object()
+        main_spec.wait("visible enabled", timeout=60)
+        main = main_spec.wrapper_object()
         main.capture_as_image().save(output / "main.png")
         main.set_focus()
 
         # The toolbar's first button opens New Project. Ctrl+N did not open a dialog.
-        main.click(coords=(23, 62))
+        bounds = main.rectangle()
+        toolbar_button = (bounds.left + 23, bounds.top + 62)
+        mouse.click(coords=toolbar_button)
         for _ in range(30):
             dialogs = desktop.windows(process=app.process, class_name="#32770", visible_only=True)
             if dialogs:
                 break
             time.sleep(0.5)
         else:
-            main.click_input(coords=(23, 62))
+            main.click(coords=ScreenToClient(main.handle, toolbar_button))
             time.sleep(2)
             dialogs = desktop.windows(process=app.process, class_name="#32770", visible_only=True)
 
