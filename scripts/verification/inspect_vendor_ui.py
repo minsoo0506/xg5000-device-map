@@ -41,7 +41,8 @@ def ladder_operand(app, main, desktop, key, address, output, name):
 
 
 def create_samples(executable, output):
-    for family in ("XGB-XBCU", "XGB-XBMS"):
+    cpu_types = {"XGB-XBCU": "XBC-DxxxU", "XGB-XBMS": "XBM-DxxxS"}
+    for family, selection in cpu_types.items():
         desktop = Desktop(backend="win32")
         app = Application(backend="win32").start(executable, work_dir=str(Path(executable).parent))
         try:
@@ -56,8 +57,7 @@ def create_samples(executable, output):
             cpu = dialog.child_window(control_id=1495, class_name="ComboBox")
             types = cpu.item_texts()
             (output / f"{family}-cpu-types.txt").write_text("\n".join(types), encoding="utf-8")
-            selection = next((name for name in types if name.strip().upper() == family), None)
-            if selection is None:
+            if selection not in types:
                 raise RuntimeError(f"{family} is missing from the CPU type list")
             cpu.select(selection)
             dialog.wrapper_object().capture_as_image().save(output / f"{family}-selected.png")
