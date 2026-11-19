@@ -4,7 +4,8 @@ import argparse
 from pathlib import Path
 import time
 
-from pywinauto import Application, Desktop, mouse
+from PIL import ImageGrab
+from pywinauto import Application, Desktop, keyboard, mouse
 from win32gui import IsWindow, ScreenToClient
 from pywinauto.findwindows import ElementNotFoundError
 
@@ -71,6 +72,13 @@ def create_samples(executable, output):
                 click_toolbar(main, 90)
                 time.sleep(1)
                 main.capture_as_image().save(output / f"{family}-saved.png")
+                # The scan program folder is visible below the PLC parameters.
+                bounds = main.rectangle()
+                folder_y = 382 if family == "XGB-XBCU" else 364
+                mouse.click(button="right", coords=(bounds.left + 104, bounds.top + folder_y))
+                time.sleep(0.5)
+                ImageGrab.grab().save(output / f"{family}-scan-menu.png")
+                keyboard.send_keys("{ESC}")
             finally:
                 if not list(output.rglob(f"{family}.xgwx")):
                     raise RuntimeError(f"XG5000 did not create {family}.xgwx")
