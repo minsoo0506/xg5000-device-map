@@ -75,15 +75,27 @@ def create_samples(executable, output):
                 # The scan program folder is visible below the PLC parameters.
                 bounds = main.rectangle()
                 folder_y = 382 if family == "XGB-XBCU" else 364
+                before_menu = {w.handle for w in desktop.windows(process=app.process, visible_only=True)}
                 mouse.click(button="right", coords=(bounds.left + 104, bounds.top + folder_y))
                 time.sleep(0.5)
-                # The menu opens against the top edge at the runner's resolution.
-                add_item = (bounds.left + 157, 41)
-                mouse.move(coords=add_item)
-                time.sleep(0.8)
                 menu_bounds = (bounds.left, 0, bounds.right, bounds.bottom)
+                ImageGrab.grab(bbox=menu_bounds).save(output / f"{family}-context-menu.png")
+                menus = [w for w in desktop.windows(process=app.process, visible_only=True) if w.handle not in before_menu]
+                (output / f"{family}-menu-controls.txt").write_text(
+                    "\n".join(f"{w.class_name()} {w.rectangle()}" for w in menus), encoding="utf-8"
+                )
+                if not menus:
+                    raise ElementNotFoundError("Scan Program context menu did not appear")
+                menu = menus[0].rectangle()
+                mouse.move(coords=(menu.left + 55, menu.top + 41))
+                time.sleep(0.8)
                 ImageGrab.grab(bbox=menu_bounds).save(output / f"{family}-add-item.png")
-                mouse.click(coords=(bounds.left + 416, 41))
+                parent_handles = before_menu | {w.handle for w in menus}
+                children = [w for w in desktop.windows(process=app.process, visible_only=True) if w.handle not in parent_handles]
+                if not children:
+                    raise ElementNotFoundError("Add Item submenu did not appear")
+                child = children[0].rectangle()
+                mouse.click(coords=(child.left + 52, child.top + 13))
                 program = app.window(title_re=r".*Program.*", class_name="#32770")
                 try:
                     program.wait("visible enabled", timeout=6)
