@@ -95,7 +95,8 @@ def create_samples(executable, output):
                 if not children:
                     raise ElementNotFoundError("Add Item submenu did not appear")
                 child = children[0].rectangle()
-                mouse.click(coords=(child.left + 52, child.top + 13))
+                # Program is the third entry, below PLC and Task.
+                mouse.click(coords=(child.left + 52, child.top + 62))
                 program = app.window(title_re=r".*Program.*", class_name="#32770")
                 try:
                     program.wait("visible enabled", timeout=6)
@@ -105,6 +106,8 @@ def create_samples(executable, output):
                 program.child_window(class_name="Edit", found_index=0).set_edit_text("ScanOutput")
                 program.child_window(control_id=1, class_name="Button").click()
                 program.wait_not("visible", timeout=12)
+                time.sleep(0.6)
+                mouse.double_click(coords=(bounds.left + 112, bounds.top + folder_y + 34))
                 time.sleep(0.6)
                 main.capture_as_image().save(output / f"{family}-second-editor.png")
                 ladder_operand(app, main, desktop, "{F3}", "M00010", output, f"{family}-output-contact")
