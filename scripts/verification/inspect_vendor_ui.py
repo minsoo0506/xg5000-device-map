@@ -87,7 +87,7 @@ def create_samples(executable, output):
                 if not menus:
                     raise ElementNotFoundError("Scan Program context menu did not appear")
                 menu = menus[0].rectangle()
-                mouse.move(coords=(menu.left + 55, menu.top + 41))
+                mouse.click(coords=(menu.left + 55, menu.top + 41))
                 time.sleep(0.8)
                 ImageGrab.grab(bbox=menu_bounds).save(output / f"{family}-add-item.png")
                 parent_handles = before_menu | {w.handle for w in menus}
