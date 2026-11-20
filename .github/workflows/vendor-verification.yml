@@ -1,8 +1,14 @@
 name: XG5000 native verification
 on:
   workflow_dispatch:
+    inputs:
+      reuse_native_projects:
+        description: Reuse the two projects saved by the verified XG5000 run
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
 jobs:
   inspect:
     runs-on: windows-latest
@@ -13,13 +19,16 @@ jobs:
         with:
           python-version: '3.12'
       - name: Download pinned official XG5000 release
+        if: inputs.reuse_native_projects != true
         shell: pwsh
         run: |
           curl.exe --fail --location --retry 3 --output "$env:RUNNER_TEMP\XG5000.exe" 'https://sftpssqblobcdn.blob.core.windows.net/prod/largefile/document/17846112306110/XG5000_V4.82.1_2026_07_20_Eng.exe'
           if ($LASTEXITCODE -ne 0) { throw 'Vendor download failed' }
       - name: Extract MSI without running the launcher
+        if: inputs.reuse_native_projects != true
         run: python scripts/verification/extract_vendor_installer.py --installer "${{ runner.temp }}/XG5000.exe" --output "${{ runner.temp }}/vendor-msi"
       - name: Install vendor-bundled Visual C++ prerequisites
+        if: inputs.reuse_native_projects != true
         shell: pwsh
         run: |
           $runtimes = Get-ChildItem "$env:RUNNER_TEMP\vendor-msi" -Filter '*.exe'
@@ -29,6 +38,7 @@ jobs:
             if ($result.ExitCode -notin @(0, 1638, 3010)) { throw "Runtime failed: $($runtime.Name): $($result.ExitCode)" }
           }
       - name: Install vendor programming tool on temporary runner
+        if: inputs.reuse_native_projects != true
         timeout-minutes: 8
         shell: pwsh
         run: |
@@ -48,7 +58,16 @@ jobs:
           "XGMAP_VENDOR_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - run: pip install pywinauto pillow
       - name: Create XBCU and XBMS projects
+        if: inputs.reuse_native_projects != true
         run: python scripts/verification/inspect_vendor_ui.py --executable "${{ env.XGMAP_VENDOR_EXE }}" --output "${{ runner.temp }}/vendor-ui" --create-samples
+      - name: Download verified native XGWX projects
+        if: inputs.reuse_native_projects == true
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44674830784
+          name: XG5000-native-verification
+          path: ${{ runner.temp }}
       - name: Open native projects in the published Windows app
         timeout-minutes: 5
         shell: pwsh

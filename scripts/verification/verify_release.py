@@ -7,6 +7,7 @@ import subprocess
 import time
 import winreg
 
+from PIL import ImageGrab
 from pywinauto import Application, Desktop, keyboard, mouse
 from win32gui import ClientToScreen, GetClientRect
 
@@ -38,14 +39,40 @@ def verify_publisher():
     raise AssertionError("Installed program was missing from Windows uninstall metadata")
 
 
+def capture_window(window, output):
+    bounds = window.rectangle()
+    screen = ImageGrab.grab()
+    screen.crop((max(0, bounds.left), max(0, bounds.top), bounds.right, bounds.bottom)).save(output)
+
+
+def record_controls(accessible, output):
+    controls = [
+        f"{item.element_info.control_type}: {item.window_text()}"
+        for item in accessible.wrapper_object().descendants()
+        if item.window_text()
+    ]
+    output.write_text("\n".join(controls), encoding="utf-8")
+
+
 def verify_project(window, projects, family):
     path = (projects / f"{family}.xgwx").resolve(strict=True)
     origin_x, origin_y = ClientToScreen(window.handle, (0, 0))
     _, _, width, _ = GetClientRect(window.handle)
-    mouse.click(coords=(origin_x + width - 120, origin_y + 29))
+    accessible = Desktop(backend="uia").window(handle=window.handle)
+    try:
+        open_button = accessible.child_window(title_re=r".*(XGWX 파일 열기|Open XGWX file|Choose File).*", control_type="Button", found_index=0)
+        open_button.wait("visible enabled", timeout=12)
+        open_button.click_input()
+    except Exception:
+        mouse.click(coords=(origin_x + width - 120, origin_y + 29))
 
     dialog = Desktop(backend="win32").window(title="Open", class_name="#32770")
-    dialog.wait("visible enabled", timeout=10)
+    try:
+        dialog.wait("visible enabled", timeout=10)
+    except Exception:
+        capture_window(window, projects / f"{family}-open-failure.png")
+        record_controls(accessible, projects / f"{family}-open-controls.txt")
+        raise
     dialog.set_focus()
     keyboard.send_keys("%n")
     keyboard.send_keys("^a" + str(path) + "{ENTER}", with_spaces=True)
@@ -80,8 +107,9 @@ def verify(installer, projects):
         window = spec.wrapper_object()
         window.maximize()
         window.set_focus()
-        time.sleep(1)
-        window.capture_as_image().save(projects / "installed-app.png")
+        time.sleep(3)
+        capture_window(window, projects / "installed-app.png")
+        record_controls(Desktop(backend="uia").window(handle=window.handle), projects / "installed-controls.txt")
         for family in ("XGB-XBCU", "XGB-XBMS"):
             verify_project(window, projects, family)
     finally:
