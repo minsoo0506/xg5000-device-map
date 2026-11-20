@@ -10,14 +10,10 @@ import {
   ReactFlow,
   useReactFlow,
 } from '@xyflow/react';
-import dagre from '@dagrejs/dagre';
 import '@xyflow/react/dist/style.css';
 import './canvas.css';
 import { networkLocation, networkNote } from './diagnostics.js';
-import { neighborhood } from './graph.js';
-
-const WIDTH = 184;
-const HEIGHT = 64;
+import { layout, WIDTH, HEIGHT } from './relationship-layout.js';
 const copy = {
   ko: {
     device: '디바이스',
@@ -59,68 +55,6 @@ const copy = {
     select: 'Enter キーまたはスペースキーでデバイスを選択します。',
   },
 };
-
-function layout(project, selected, depth) {
-  const visible = neighborhood(project, selected, depth);
-  const devices = new Set(visible.devices);
-  const rungs = new Set(visible.rungs);
-  const graph = new dagre.graphlib.Graph({ multigraph: true });
-  graph.setGraph({
-    rankdir: 'LR',
-    ranksep: 112,
-    nodesep: 52,
-    edgesep: 28,
-    ranker: 'longest-path',
-  });
-  graph.setDefaultEdgeLabel(() => ({}));
-  const nodes = [];
-  const edges = [];
-  function addNode(id, item, kind) {
-    graph.setNode(id, { width: WIDTH, height: HEIGHT });
-    nodes.push({
-      id,
-      type: 'relationship',
-      width: WIDTH,
-      height: HEIGHT,
-      data: { item, kind, active: id === 'd:' + selected },
-    });
-  }
-  function addEdge(source, target, id, instruction) {
-    graph.setEdge(source, target, {}, id);
-    edges.push({ id, source, target, instruction });
-  }
-  for (const device of project.devices) {
-    if (devices.has(device.address))
-      addNode('d:' + device.address, device, 'device');
-  }
-  for (const rung of project.rungs) {
-    if (!rungs.has(rung.id)) continue;
-    const id = 'r:' + rung.id;
-    addNode(id, rung, 'rung');
-    rung.reads.forEach((address, index) =>
-      addEdge('d:' + address, id, id + ':read:' + index),
-    );
-    rung.writes.forEach((write, index) =>
-      addEdge(
-        id,
-        'd:' + write.address,
-        id + ':write:' + index,
-        write.instruction,
-      ),
-    );
-  }
-  dagre.layout(graph);
-  for (const node of nodes) {
-    const { x, y } = graph.node(node.id);
-    node.position = { x: x - WIDTH / 2, y: y - HEIGHT / 2 };
-  }
-  for (const edge of edges) {
-    edge.points = graph.edge(edge.source, edge.target, edge.id).points;
-    edge.sourceCenter = graph.node(edge.source);
-    edge.targetCenter = graph.node(edge.target);
-  }
-  return { nodes, edges };
-}
 
 const Card = memo(function Card({ data }) {
   const { item, kind, active, labels, language, nativeProject, example } = data;
@@ -223,9 +157,18 @@ function CenterSelection({ graph, selected, project, container }) {
     if (!root) return;
     const x = root.position.x + WIDTH / 2,
       y = root.position.y + HEIGHT / 2;
+    const { width, height } = container.current.getBoundingClientRect();
+    const padding = 16;
+    let left = root.position.x;
+    let right = left + WIDTH;
+    if (graph.wrapped) {
+      for (const { position } of graph.nodes) {
+        left = Math.min(left, position.x);
+        right = Math.max(right, position.x + WIDTH);
+      }
+    }
     let zoom = flow.getZoom();
     if (previous.current?.project !== project) {
-      const { width, height } = container.current.getBoundingClientRect();
       let radiusX = WIDTH / 2,
         radiusY = HEIGHT / 2;
       for (const node of graph.nodes) {
@@ -242,15 +185,23 @@ function CenterSelection({ graph, selected, project, container }) {
         0.35,
         Math.min(
           1,
-          (width - 32) / (2 * radiusX),
+          (width - 2 * padding) / (graph.wrapped ? right - left : 2 * radiusX),
           (height - 56) / (2 * radiusY),
         ),
       );
     }
     previous.current = { graph, project };
-    const { width, height } = container.current.getBoundingClientRect();
+    let offsetX = width / 2 - x * zoom;
+    if (graph.wrapped) {
+      const leftAligned = padding - left * zoom;
+      const rightAligned = width - padding - right * zoom;
+      offsetX =
+        leftAligned <= rightAligned
+          ? (leftAligned + rightAligned) / 2
+          : Math.max(rightAligned, Math.min(leftAligned, offsetX));
+    }
     flow.setViewport({
-      x: width / 2 - x * zoom,
+      x: offsetX,
       y: height / 2 - y * zoom,
       zoom,
     });
