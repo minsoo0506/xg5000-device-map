@@ -55,8 +55,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pip install playwright
-          if ($LASTEXITCODE -ne 0) { throw 'Playwright install failed' }
           gh release download v0.2.1 --pattern '*-setup.exe' --dir "$env:RUNNER_TEMP"
           if ($LASTEXITCODE -ne 0) { throw 'Release installer download failed' }
           $installer = Get-ChildItem $env:RUNNER_TEMP -Filter '*-setup.exe' | Select-Object -First 1
