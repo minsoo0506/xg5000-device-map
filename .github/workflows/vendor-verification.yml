@@ -74,7 +74,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download v0.2.1 --pattern '*-setup.exe' --dir "$env:RUNNER_TEMP"
+          gh release download v0.1.0 --pattern '*-setup.exe' --dir "$env:RUNNER_TEMP"
           if ($LASTEXITCODE -ne 0) { throw 'Release installer download failed' }
           $installer = Get-ChildItem $env:RUNNER_TEMP -Filter '*-setup.exe' | Select-Object -First 1
           python scripts/verification/verify_release.py --installer $installer.FullName --projects "$env:RUNNER_TEMP/vendor-ui"
